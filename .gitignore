@@ -1,0 +1,13 @@
+# Local documents, never committed: the design and the plan of the work
+docs/design.md
+
+# Claude Code settings: permissions granted on this machine only
+.claude/
+
+# Python bytecode and pytest cache, also kept out of a parent repository that holds hil-host as a submodule
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Runs of the examples: results folders written by the tests or the TUI
+work/
