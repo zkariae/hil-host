@@ -1,0 +1,47 @@
+# SPDX-License-Identifier: MIT
+# ****************************
+# \file       pyproject.toml
+# \brief      hil-host: Python dependencies and pytest settings.
+#
+# \author     Z. BEN-AKKA
+# \version    1.0
+# \date       18/11/2026
+#
+# \details
+#   Run the tests from the root of hil-host with: python3 -m pytest
+#   This file makes the root of hil-host the pytest root and puts it on the
+#   import path, so the tests import the hil_host package from here, without
+#   an install. A project that holds hil-host as a submodule puts the
+#   submodule folder on its own pytest pythonpath instead. Textual is
+#   pinned. By default no test touches a board; -m board selects the board
+#   tests, which need --hil-config of a project; -m ui the Textual tests.
+#
+# \section pyproject_toml_version_history Version history
+# | Version | Date       | Author      | Description      |
+# |:-------:|:----------:|:------------|:-----------------|
+# | 1.0     | 18/11/2026 | Z. BEN-AKKA | Initial version, from tests/host/tui/pyproject.toml 1.0 and tests/host/hil/pyproject.toml 1.5 of stm32f7508-dk-baremetal. |
+# ****************************
+
+[project]
+name = "hil-host"
+version = "0.1.0"
+description = "Reusable host side of a HIL test bench: serial adapters, pytest fixtures and a Textual TUI"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+dependencies = [
+  "pyserial>=3.5",
+  "PyYAML>=5.4",
+  "pytest>=7.0",
+  "textual==8.2.8",
+]
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+testpaths = ["tests"]
+pythonpath = ["."]
+markers = [
+  "board: needs a board attached to the bench and --hil-config of a project",
+  "ui: drives the Textual interface headless, needs Textual installed",
+]
+# The board tests run only on request: python3 -m pytest -m board --hil-config FILE
+addopts = "-m 'not board'"
