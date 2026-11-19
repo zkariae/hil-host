@@ -1,0 +1,52 @@
+# SPDX-License-Identifier: MIT
+# ****************************
+# \file       .github/workflows/tests.yml
+# \brief      CI of hil-host: the tests on GitHub Actions, without a board.
+#
+# \author     Z. BEN-AKKA
+# \version    1.0
+# \date       19/11/2026
+#
+# \details
+#   Runs the tests of hil-host for each pull request and each push to main,
+#   with the fake firmware and ptys only: pyproject.toml leaves the board
+#   tests out. Two Python versions, the oldest supported and a recent one;
+#   their jobs, "tests (3.10)" and "tests (3.12)", are the status checks the
+#   ruleset of main requires. Ubuntu 22.04 is the system of the bench PC.
+#
+# \section tests_yml_version_history Version history
+# | Version | Date       | Author      | Description      |
+# |:-------:|:----------:|:------------|:-----------------|
+# | 1.0     | 19/11/2026 | Z. BEN-AKKA | Initial version. |
+# ****************************
+
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.10", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install the dependencies
+        run: python -m pip install "pyserial>=3.5" "PyYAML>=5.4" "pytest>=7.0" "textual==8.2.8"
+      - name: Run the tests
+        run: python -m pytest -v
