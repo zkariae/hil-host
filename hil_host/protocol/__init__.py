@@ -22,11 +22,12 @@ with register(), such as the toy protocol of a test, or else imports the
 module of hil-host that holds that name: the registry is the only place
 that names the implementations.
 
-Version: 1.0
+Version: 1.1
 Date: 19/11/2026
 Author: Z. BEN-AKKA
 History:
   1.0  19/11/2026  Initial version.
+  1.1  19/11/2026  identify() returns the Response of the identity request, checked against the readiness signal.
 """
 
 import importlib
@@ -96,8 +97,8 @@ class BenchProtocol(ABC):
         """
 
     @abstractmethod
-    def identify(self) -> Identity:
-        """Ask the firmware for its identity and check it against the readiness signal."""
+    def identify(self) -> Response:
+        """Ask the firmware for its identity, check it against the readiness signal and return the answer."""
 
     @abstractmethod
     def commands(self) -> list:
