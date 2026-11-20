@@ -4,8 +4,8 @@
 # \brief      CI of hil-host: the tests on GitHub Actions, without a board.
 #
 # \author     Z. BEN-AKKA
-# \version    1.0
-# \date       19/11/2026
+# \version    1.1
+# \date       20/11/2026
 #
 # \details
 #   Runs the tests of hil-host for each pull request and each push to main,
@@ -18,6 +18,7 @@
 # | Version | Date       | Author      | Description      |
 # |:-------:|:----------:|:------------|:-----------------|
 # | 1.0     | 19/11/2026 | Z. BEN-AKKA | Initial version. |
+# | 1.1     | 20/11/2026 | Z. BEN-AKKA | Move to actions/checkout@v7 and actions/setup-python@v7, which run on Node 24. |
 # ****************************
 
 name: tests
@@ -42,8 +43,8 @@ jobs:
       matrix:
         python: ["3.10", "3.12"]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python }}
       - name: Install the dependencies
