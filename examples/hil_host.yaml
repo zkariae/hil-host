@@ -1,0 +1,87 @@
+# SPDX-License-Identifier: MIT
+# ****************************
+# \file       examples/hil_host.yaml
+# \brief      Example project configuration: bench, catalogue, image and test families of a fake bench.
+#
+# \author     Z. BEN-AKKA
+# \version    1.0
+# \date       20/11/2026
+#
+# \details
+#   A project describes its bench in one configuration file, passed as
+#   --config to the TUI and as the ini option hil_config (or --hil-config)
+#   to pytest. Every path is relative to root. This one describes the fake
+#   bench of examples/: its image commands only print a line, so it runs
+#   with no board, no make and no programmer; the tests of hil-host use it
+#   with the fake firmware.
+#
+#   Keys:
+#     bench          Bench file: serial port, timeouts, delays, build check.
+#     catalog        Command catalogue: arguments, defaults, effects.
+#     protocol       Protocol of the firmware.
+#     results_dir    Folder of the run folders.
+#     image          Bench image: commands, their timeout, build and resets.
+#     command_names  Where the firmware declares its command names.
+#     families       Test families of the Tests tab, in order.
+#
+#   Commands are lists, one argument per item, run from root; {python} is
+#   the interpreter of hil-host. In a script command, {ids} is the selected
+#   ids of the plan, each one an argument.
+#
+# \section hil_host_yaml_version_history Version history
+# | Version | Date       | Author      | Description      |
+# |:-------:|:----------:|:------------|:-----------------|
+# | 1.0     | 20/11/2026 | Z. BEN-AKKA | Initial version, after the suites and runner of tests/host/tui of stm32f7508-dk-baremetal. |
+# ****************************
+
+schema_version: 1
+
+root: ..                            # Root of hil-host, from examples/
+
+bench: examples/bench.yaml
+catalog: examples/commands.yaml
+protocol: hil-1
+results_dir: work/hil-results       # Ignored by git
+
+image:
+  name: fake-bench
+  flash: ["{python}", "-c", "print('flash fake-bench: nothing to program')"]
+  reset: ["{python}", "-c", "print('reset fake-bench: pin reset')"]
+  reset_sw: ["{python}", "-c", "print('reset fake-bench: software reset')"]
+  timeout: 60                       # Seconds, for each of the commands above
+  # The build of the flashed image, for firmware.expected_build: auto. The fake
+  # bench has no build output: its build is the default build of the fake firmware.
+  build_id:
+    file: hil_host/fake/hil1.py
+    pattern: 'build: str = "([0-9a-f]{7})"'
+  abnormal_resets: [IWDG, WWDG, BOR, LPWR]  # Never expected on the bench: shown as a warning
+
+# The command names the firmware declares, for the test of the project that
+# compares them with the catalogue, both directions. A real project reads
+# them from its firmware sources; the fake bench has none, so this example
+# reads the catalogue itself.
+command_names:
+  file: examples/commands.yaml
+  pattern: '^  ([A-Z][A-Z0-9_]*):'
+
+families:
+  - id: pytest
+    kind: pytest
+    title: Fake bench (pytest)
+    path: examples/tests
+
+  - id: lamp
+    kind: script
+    title: Lamp check (script)
+    plan:
+      file: examples/scripts/lamp_plan.yaml
+      key: tests                    # List of items with id, title and after
+    before: []                      # Commands run first, in order
+    command: ["{python}", "examples/scripts/lamp_check.py", "--only", "{ids}"]
+    error_prefixes: ["Serial error", "Configuration error", "Plan error"]
+    leaves_image: false             # true: the TUI then offers to flash image.name
+
+  - id: scenarios
+    kind: scenario
+    title: Scenarios
+    path: examples/scenarios
