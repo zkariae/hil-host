@@ -1,0 +1,129 @@
+# SPDX-License-Identifier: MIT
+# ****************************
+# \file       examples/commands.yaml
+# \brief      Example command catalogue: arguments, defaults and effects of each command of a fake bench.
+#
+# \author     Z. BEN-AKKA
+# \version    1.0
+# \date       20/11/2026
+#
+# \details
+#   The firmware lists its command names (the command list of the protocol)
+#   but never their arguments; the catalogue tells how to ask for each
+#   command, so the TUI builds its forms from data. A project writes its own
+#   catalogue from its protocol specification, not from the firmware, and
+#   names it with the catalog key of its configuration. This one describes a
+#   fake bench with a lamp, a memory, pins and a screen, and covers every
+#   field and argument type; the tests of hil-host use it with the fake
+#   firmware.
+#
+#   Entry fields:
+#     group     Display group.
+#     summary   One line shown next to the command.
+#     spec      Section of the protocol specification of the bench.
+#     effect    destructive or reboots: the TUI asks for confirmation.
+#     requires  Command to send first; a warning, never a block.
+#     args      Arguments, in the order they are sent.
+#
+#   Argument types, all with an optional default and required (true if
+#   absent):
+#     enum      values: list of accepted strings.
+#     int       min, max: unsigned decimal, no leading zeros.
+#     hex       digits: [min, max] after 0x; min, max; multiple_of.
+#     hexdata   bytes: [min, max]; two hexadecimal digits per byte.
+#     letter    min, max: one uppercase letter.
+#     color     RGB565, 0x and 1 to 4 digits.
+#
+#   Checks between arguments (an address plus a length) stay with the
+#   firmware, which answers INVALID_ARGUMENT. Timeouts come from the bench
+#   file. The defaults are safe on the bench they describe.
+#
+# \section commands_yaml_version_history Version history
+# | Version | Date       | Author      | Description      |
+# |:-------:|:----------:|:------------|:-----------------|
+# | 1.0     | 20/11/2026 | Z. BEN-AKKA | Initial version, after tests/host/config/commands.yaml 1.0 of stm32f7508-dk-baremetal. |
+# ****************************
+
+schema_version: 1
+
+commands:
+  HELLO:
+    group: Session
+    summary: Check the command path and read the firmware identity
+    spec: "6.2"
+    args: {}
+
+  CAPS:
+    group: Session
+    summary: List the supported commands, one page at a time
+    spec: "6.3"
+    args:
+      start: {type: int, min: 0, max: 254, required: false, default: 0}
+
+  REBOOT:
+    group: Session
+    summary: Restart the firmware; a new readiness signal follows
+    spec: example
+    effect: reboots
+    args: {}
+
+  LAMP_SET:
+    group: Lamp
+    summary: Switch the lamp
+    spec: example
+    args:
+      # Quoted: YAML 1.1 reads bare on and off as booleans
+      state: {type: enum, values: ["on", "off", "toggle"], default: "toggle"}
+
+  LAMP_GET:
+    group: Lamp
+    summary: Read the state of the lamp
+    spec: example
+    args: {}
+
+  MEM_READ:
+    group: Memory
+    summary: Read 1 to 32 bytes of the memory
+    spec: example
+    args:
+      addr: {type: hex, digits: [1, 8], min: 0x00000000, max: 0x0000FFFF, default: 0x00001000}
+      len: {type: int, min: 1, max: 32, default: 4}
+
+  MEM_ERASE:
+    group: Memory
+    summary: Erase one 256-byte block of the scratch area
+    spec: example
+    effect: destructive
+    args:
+      addr: {type: hex, digits: [1, 8], min: 0x00001000, max: 0x00001F00, multiple_of: 256, default: 0x00001000}
+
+  MEM_WRITE:
+    group: Memory
+    summary: Program 1 to 32 bytes of the scratch area
+    spec: example
+    effect: destructive
+    args:
+      addr: {type: hex, digits: [1, 8], min: 0x00001000, max: 0x00001FFF, default: 0x00001000}
+      data: {type: hexdata, bytes: [1, 32], default: "FF"}
+
+  PIN_READ:
+    group: Pins
+    summary: Read the level of one pin
+    spec: example
+    args:
+      port: {type: letter, min: A, max: D, default: A}
+      pin: {type: int, min: 0, max: 15, default: 0}
+
+  SCREEN_INIT:
+    group: Screen
+    summary: Bring up the screen with a black frame
+    spec: example
+    args: {}
+
+  SCREEN_FILL:
+    group: Screen
+    summary: Fill the screen with one colour
+    spec: example
+    requires: SCREEN_INIT
+    args:
+      color: {type: color, default: 0x0000}
