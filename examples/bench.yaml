@@ -1,0 +1,46 @@
+# SPDX-License-Identifier: MIT
+# ****************************
+# \file       examples/bench.yaml
+# \brief      Example bench file: serial port, timeouts, delays and build check of one bench.
+#
+# \author     Z. BEN-AKKA
+# \version    1.0
+# \date       20/11/2026
+#
+# \details
+#   The bench file holds what changes from one bench to another: the serial
+#   port of the board and the times of this firmware and this PC. The
+#   project configuration (hil_host.yaml) names it with its bench key; a
+#   project may share it with its own scripts, which read their own keys:
+#   hil-host reads the keys below and ignores any other. The tests of
+#   hil-host use this file with a fake port. All durations are in seconds.
+#
+# \section bench_yaml_version_history Version history
+# | Version | Date       | Author      | Description      |
+# |:-------:|:----------:|:------------|:-----------------|
+# | 1.0     | 20/11/2026 | Z. BEN-AKKA | Initial version, after tests/host/config/bench.yaml 1.6 of stm32f7508-dk-baremetal. |
+# ****************************
+
+schema_version: 1
+
+serial:                       # The firmware's UART, through the board's USB serial port
+  port: /dev/ttyACM0          # COMx on Windows; --port overrides it
+  baudrate: 115200
+  bytesize: 8
+  parity: none                # none | even | odd
+  stopbits: 1
+  flow_control: none          # none | xonxoff | rtscts
+
+timeouts:                     # Seconds
+  startup: 5.0                # Readiness signal after a reset
+  response: 2.0               # Answer to one request
+
+delays:                       # Seconds
+  port_open_settle: 0.1       # After opening the port, and stale input drained before each reset
+  baud_switch_settle: 0.05    # Around a send at another baud rate
+  extra_byte_wait: 0.2        # Silence after which no more line is expected
+
+firmware:
+  # auto: the build of the flashed image (image.build_id of hil_host.yaml); a value; or null to skip
+  expected_build: auto
+  accept_build_mismatch: false  # true: a build mismatch is a warning only
