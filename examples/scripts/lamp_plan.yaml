@@ -1,0 +1,51 @@
+# SPDX-License-Identifier: MIT
+# ****************************
+# \file       examples/scripts/lamp_plan.yaml
+# \brief      Example script plan L1 and L2: what each lamp test sends and expects on the fake bench.
+#
+# \author     Z. BEN-AKKA
+# \version    1.0
+# \date       20/11/2026
+#
+# \details
+#   The plan of the lamp family of examples/hil_host.yaml (script kind),
+#   read under its key tests. The test procedure stays in lamp_check.py;
+#   bench settings stay in examples/bench.yaml. Run results are not stored
+#   here.
+#
+#   Item keys:
+#     id      Passed to the script command; unique.
+#     title   Shown in the Tests tab.
+#     after   Items that must run earlier in the same run; the TUI adds them
+#             to a selection, in plan order, and the script refuses an item
+#             run without them.
+#     method  What the test does, for the reader.
+#     params  Read by the script only: command and args to send, fields
+#             expected in the answer.
+#
+# \section lamp_plan_yaml_version_history Version history
+# | Version | Date       | Author      | Description      |
+# |:-------:|:----------:|:------------|:-----------------|
+# | 1.0     | 20/11/2026 | Z. BEN-AKKA | Initial version, after tests/host/rx_check/plans/uart_rx.yaml 1.6 of stm32f7508-dk-baremetal. |
+# ****************************
+
+schema_version: 1
+
+tests:
+  - id: L1
+    title: Lamp switches on
+    method: Send LAMP_SET state=on and check the answer.
+    params:
+      command: LAMP_SET
+      args: {state: "on"}      # Quoted: YAML 1.1 reads bare on and off as booleans
+      expect: {state: "on"}
+
+  - id: L2
+    title: Lamp switches off
+    method: After L1, send LAMP_SET state=off and check the answer.
+    # Tests that must run earlier in the same run; L2 alone is refused.
+    after: [L1]
+    params:
+      command: LAMP_SET
+      args: {state: "off"}
+      expect: {state: "off"}
