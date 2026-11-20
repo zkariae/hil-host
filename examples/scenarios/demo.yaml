@@ -1,0 +1,49 @@
+# SPDX-License-Identifier: MIT
+# ****************************
+# \file       examples/scenarios/demo.yaml
+# \brief      Example scenario: read the identity, switch the lamp, fill the screen, ask the operator.
+#
+# \author     Z. BEN-AKKA
+# \version    1.0
+# \date       20/11/2026
+#
+# \details
+#   Played by the TUI in the open session, on the fake bench of
+#   examples/hil_host.yaml; adding a file to this folder adds a scenario.
+#   name and steps are required, description is optional. A step has either
+#   command, with optional args and expect, or prompt:
+#     command   A command of the catalogue; its args pass the checks of the
+#               catalogue.
+#     expect    Fields the answer must hold; text compare, case ignored for
+#               0x values.
+#     prompt    A yes or no question to the operator.
+#   status=ERR, another value or a No is FUNCTIONAL_ERROR and the next steps
+#   still run; a lost session ends the scenario.
+#
+#   Quote on, off and hexadecimal values: YAML reads bare on and off as
+#   booleans and 0xF800 as a number. The steps leave the bench as found:
+#   lamp off, screen black. The fake firmware echoes the arguments it
+#   receives but keeps no state, so LAMP_GET has no expect here; on a real
+#   bench it would expect state=on.
+#
+# \section demo_yaml_version_history Version history
+# | Version | Date       | Author      | Description      |
+# |:-------:|:----------:|:------------|:-----------------|
+# | 1.0     | 20/11/2026 | Z. BEN-AKKA | Initial version, after tests/host/tui/scenarios/lcd_colors.yaml 1.0 of stm32f7508-dk-baremetal. |
+# ****************************
+
+name: Fake bench demo
+description: Read the identity, switch the lamp, fill the screen in red, confirm by eye, then leave the lamp off and the screen black.
+steps:
+  - {command: HELLO, expect: {name: fake-bench}}
+
+  - {command: LAMP_SET, args: {state: "on"}, expect: {state: "on"}}
+  - {command: LAMP_GET}
+  - {prompt: "Is the lamp on?"}
+
+  - {command: SCREEN_INIT}
+  - {command: SCREEN_FILL, args: {color: "0xF800"}, expect: {color: "0xF800"}}
+  - {prompt: "Is the whole screen red?"}
+
+  - {command: SCREEN_FILL, args: {color: "0x0000"}, expect: {color: "0x0000"}}
+  - {command: LAMP_SET, args: {state: "off"}, expect: {state: "off"}}
