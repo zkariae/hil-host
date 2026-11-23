@@ -22,12 +22,13 @@ with register(), such as the toy protocol of a test, or else imports the
 module of hil-host that holds that name: the registry is the only place
 that names the implementations.
 
-Version: 1.1
-Date: 19/11/2026
+Version: 1.2
+Date: 23/11/2026
 Author: Z. BEN-AKKA
 History:
   1.0  19/11/2026  Initial version.
   1.1  19/11/2026  identify() returns the Response of the identity request, checked against the readiness signal.
+  1.2  23/11/2026  identity: the readiness signal of the current session, also after a session the protocol restarts itself.
 """
 
 import importlib
@@ -83,6 +84,7 @@ class BenchProtocol(ABC):
     def __init__(self, response_timeout: float):
         self.response_timeout = response_timeout
         self.link = None
+        self.identity = None  # Identity of the current session; a protocol may start a new session itself
 
     def open(self, link) -> None:
         """Take the line link to talk on; a new link replaces the previous one."""
@@ -92,6 +94,7 @@ class BenchProtocol(ABC):
     def wait_ready(self, reset: Callable[[], None], timeout: float, settle: float) -> Identity:
         """Drop stale input for settle seconds, call reset(), then wait for a valid readiness signal.
 
+        identity is None from the call on, and the new Identity on success.
         Raises StartupFailure without one within timeout, IncompatibleProtocol
         for a version this implementation does not speak.
         """
