@@ -11,6 +11,7 @@ frozen Config whose paths are absolute, resolved from root:
   - image: name, the flash, reset and reset_sw commands, their timeout,
     build_id (file and pattern, optional) and abnormal_resets;
   - command_names: file and pattern, optional;
+  - run_options: the file of the run options, optional, exists;
   - families, in order, with unique ids: pytest (path), script (plan,
     before, command, error_prefixes, leaves_image) or scenario (path).
 
@@ -29,14 +30,15 @@ ConfigError names the file and the key. This module imports neither pytest
 nor Textual: the plugins and the TUI turn ConfigError into their own error.
 
 Not checked here: the folders and plans of the families (suites.py reports
-them per family), the content of the catalogue (catalog.py) and the serial
-port (link.py).
+them per family), the content of the catalogue (catalog.py) and of the run
+options file (run_options.py), and the serial port (link.py).
 
-Version: 1.0
-Date: 20/11/2026
+Version: 1.1
+Date: 25/11/2026
 Author: Z. BEN-AKKA
 History:
   1.0  20/11/2026  Initial version, after load_bench_config of tests/host/hil/fixtures/board_fixtures.py 1.1 and the families of tests/host/tui/core/suites.py 1.0 of stm32f7508-dk-baremetal.
+  1.1  25/11/2026  run_options key, optional; files that are not UTF-8, unknown keys of several types and a list as a kind raise ConfigError.
 """
 
 import re
@@ -53,7 +55,8 @@ PARITIES = ("none", "even", "odd")
 FLOW_CONTROLS = ("none", "xonxoff", "rtscts")
 SERIAL_KEYS = ("port", "baudrate", "bytesize", "parity", "stopbits", "flow_control")
 TOP_KEYS = {"schema_version", "root", "bench", "catalog", "protocol", "results_dir", "image", "command_names",
-            "families"}
+            "run_options", "families"}
+OPTIONAL_KEYS = {"command_names", "run_options"}
 IMAGE_KEYS = {"name", "flash", "reset", "reset_sw", "timeout", "build_id", "abnormal_resets"}
 SOURCE_KEYS = {"file", "pattern"}
 FAMILY_KEYS = {
@@ -134,6 +137,7 @@ class Config:
     results_dir: Path
     image: Image
     command_names: CommandNames | None
+    run_options: Path | None
     families: tuple
 
 
@@ -142,7 +146,7 @@ def load(path: Path | str) -> Config:
     path = Path(path).resolve()
     data = _read(path)
     check = _Checker(path.name)
-    check.keys("", data, TOP_KEYS, TOP_KEYS - {"command_names"})
+    check.keys("", data, TOP_KEYS, TOP_KEYS - OPTIONAL_KEYS)
     if data["schema_version"] != SCHEMA_VERSION:
         raise check.error("schema_version", f"must be {SCHEMA_VERSION}")
     root = (path.parent / check.text("root", data["root"])).resolve()
@@ -159,9 +163,11 @@ def load(path: Path | str) -> Config:
     image = _image(check, root, data["image"])
     names = data.get("command_names")
     command_names = None if names is None else CommandNames(*check.source(root, "command_names", names))
+    options = data.get("run_options")
+    run_options = None if options is None else check.file(root, "run_options", options)
     families = _families(check, root, data["families"])
     return Config(path, root, bench_file, load_bench(bench_file), catalog, protocol, results_dir, image,
-                  command_names, families)
+                  command_names, run_options, families)
 
 
 def load_bench(path: Path | str) -> Bench:
@@ -214,7 +220,7 @@ def expand(argv, ids=()) -> list:
 def _read(path: Path) -> dict:
     try:
         data = yaml.safe_load(path.read_text(encoding="utf-8"))
-    except (OSError, yaml.YAMLError) as error:
+    except (OSError, UnicodeDecodeError, yaml.YAMLError) as error:
         raise ConfigError(f"{path}: {error}") from None
     if not isinstance(data, dict):
         raise ConfigError(f"{path}: not a mapping")
@@ -254,7 +260,7 @@ def _families(check, root: Path, data) -> tuple:
             raise check.error(where, "id used twice")
         seen.add(family_id)
         kind = entry.get("kind")
-        if kind not in FAMILY_KEYS:
+        if not isinstance(kind, str) or kind not in FAMILY_KEYS:
             raise check.error(f"{where}.kind", f"must be one of {', '.join(FAMILY_KEYS)}")
         keys = {"id", "kind", "title"} | FAMILY_KEYS[kind]
         check.keys(f"{where}.", entry, keys, keys)
@@ -296,7 +302,7 @@ class _Checker:
     def keys(self, prefix: str, data, allowed: set, required: set) -> None:
         if not isinstance(data, dict):
             raise self.error(prefix.rstrip(".") or "file", "must be a mapping")
-        unknown = sorted(set(data) - allowed)
+        unknown = sorted(set(data) - allowed, key=str)  # YAML keys may be of several types
         if unknown:
             raise self.error(f"{prefix}{unknown[0]}", "is not a known key")
         missing = sorted(required - set(data))
